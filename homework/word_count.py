@@ -73,19 +73,16 @@ def create_directory(directory):
         os.makedirs(directory)
 def save_output(output_directory, sequence):
     """Save Output"""
-    output_file = os.path.join(output_directory, "word_count.txt")
+    output_file = os.path.join(output_directory, "part-00000")
     with open(output_file, "w", encoding="utf-8") as f:
-        for word, count in sequence:
-         f.write(f"{word}: {count}\n")
-    print(f"Resultados guardados en {output_file}")
+        for word, count in sorted(sequence, key=lambda x: x[0]):
+            f.write(f"{word}\t{count}\n")
 
 def create_marker(output_directory):
     """Create Marker"""
     marker_file = os.path.join(output_directory, "_SUCCESS")
     with open(marker_file, "w", encoding="utf-8") as f:
-        f.write("Job completed successfully\n")
-    print(f"Marcador creado en {marker_file}")
-
+        f.write("Marcador de éxito")
 def run_job(input_directory, output_directory):
     """Job"""
     sequence = load_input(input_directory)
