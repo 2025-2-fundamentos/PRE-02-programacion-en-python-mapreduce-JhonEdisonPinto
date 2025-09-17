@@ -10,7 +10,11 @@ import shutil
 
 from itertools import groupby
 
-from toolz.itertoolz import concat, pluck
+from itertools import chain
+from operator import itemgetter
+
+concat = chain.from_iterable
+pluck = lambda i, seq: map(itemgetter(i), seq)
 
 
 def copy_raw_files_to_input_folder(n=1000, input_folder="files/input", raw_folder="files/raw"):
