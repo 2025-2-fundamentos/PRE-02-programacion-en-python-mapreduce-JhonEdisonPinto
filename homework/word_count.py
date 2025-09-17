@@ -6,53 +6,22 @@ import fileinput
 import glob
 import os.path
 import time
+import shutil
+
 from itertools import groupby
 
 from toolz.itertoolz import concat, pluck
 
 
-def copy_raw_files_to_input_folder(n: int):
-    """Generate n copies of the raw files in the input folder"""
-    raw_folder = "files/raw"
-    input_folder = "files/input"
+def copy_raw_files_to_input_folder(n=1000, input_folder="files/input", raw_folder="files/raw"):
+    if not os.path.exists(input_folder):
+        os.makedirs(input_folder)
 
-    # Crear la carpeta input si no existe
-    os.makedirs(input_folder, exist_ok=True)
-
-    # Recorrer cada archivo en la carpeta raw
-    for filename in os.listdir(raw_folder):
-        file_path = os.path.join(raw_folder, filename)
-
-        if os.path.isfile(file_path):
-            # Crear n copias
-            for i in range(n):
-                # Generar un nombre de archivo con sufijo copy{i}
-                new_filename = f"{os.path.splitext(filename)[0]}_copy{i}{os.path.splitext(filename)[1]}"
-                new_file_path = os.path.join(input_folder, new_filename)
-
-                # Copiar el archivo
-                shutil.copy(file_path, new_file_path)
-    # Crear carpeta destino si no existe
-    if not os.path.exists(input_dir):
-        os.makedirs(input_dir)
-
-    raw_files = glob.glob(os.path.join(raw_dir, "*.txt"))
-
-    if not raw_files:
-        print("No se encontraron archivos en", raw_dir)
-        return
-
-    for i in range(n):
-        for file in raw_files:
-            filename = os.path.basename(file)
-            name, ext = os.path.splitext(filename)
-
-            # Ejemplo: file1_copy0.txt, file1_copy1.txt...
-            new_filename = f"{name}_copy{i}{ext}"
-            new_path = os.path.join(input_dir, new_filename)
-
-            shutil.copy(file, new_path)
-            print(f"Copiado: {file} -> {new_path}")
+    raw_files = os.listdir(raw_folder)[:n]
+    for file_name in raw_files:
+        file_path = os.path.join(raw_folder, file_name)
+        new_file_path = os.path.join(input_folder, file_name)
+        shutil.copy(file_path, new_file_path)
 
 def load_input(input_directory):
     """Funcion load_input"""
