@@ -4,98 +4,95 @@
 
 import fileinput
 import glob
-import os.path
+import os
+import string
 import time
-import shutil
-
 from itertools import groupby
+from operator import itemgetter
 
-from itertools import chain
-from toolz.itertoolz import concat, pluck
+from toolz.itertoolz import concat
 
 
-def copy_raw_files_to_input_folder(n, raw_dir="files/raw", input_dir="files/input"):
+def copy_raw_files_to_input_folder(n):
     """Generate n copies of the raw files in the input folder"""
 
-    # Crear carpeta destino si no existe
-    if not os.path.exists(input_dir):
-        os.makedirs(input_dir)
+    create_directory("files/input")
 
-    raw_files = glob.glob(os.path.join(raw_dir, "*.txt"))
+    for file in glob.glob("files/raw/*"):
 
-    if not raw_files:
-        print("No se encontraron archivos en", raw_dir)
-        return
+        with open(file, "r", encoding="utf-8") as f:
+            text = f.read()
 
-    for i in range(n):
-        for file in raw_files:
-            filename = os.path.basename(file)
-            name, ext = os.path.splitext(filename)
-
-            # Ejemplo: file1_copy0.txt, file1_copy1.txt...
-            new_filename = f"{name}_copy{i}{ext}"
-            new_path = os.path.join(input_dir, new_filename)
-
-            shutil.copy(file, new_path)
+        for i in range(1, n + 1):
+            filename = f"{os.path.basename(file).split('.')[0]}_{i}.txt"
+            with open(f"files/input/{filename}", "w", encoding="utf-8") as f2:
+                f2.write(text)
 
 
 def load_input(input_directory):
-    """Load all lines from input directory"""
-    lines = []
-    for filename in os.listdir(input_directory):
-        if filename.endswith(".txt"):
-            with open(os.path.join(input_directory, filename), "r", encoding="utf-8") as f:
-                lines.extend(f.readlines())
-    return lines
+    """Load files into sequence of (filename, line)"""
+
+    sequence = []
+    files = glob.glob(f"{input_directory}/*")
+    with fileinput.input(files=files) as f:
+        for line in f:
+            sequence.append((fileinput.filename(), line))
+    return sequence
 
 
 def preprocess_line(x):
     """Preprocess the line x"""
-    x = x.lower()
-    x = re.sub(r"[^a-záéíóúüñ0-9\s]", "", x)
-    return x.strip()
+    text = x[1]
+    text = text.lower()
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    return (x[0], text.strip())
 
 
 def map_line(x):
-    """Return (word, 1) for each word in line"""
-    words = x.split()
-    return [(w, 1) for w in words]
+    """Map line -> list of (word,1)"""
+    _, clean_line = preprocess_line(x)
+    return [(w, 1) for w in clean_line.split() if w]
 
 
 def mapper(sequence):
     """Mapper"""
-    return list(concat(map(map_line, sequence)))
+    return concat(map(map_line, sequence))
 
 
 def shuffle_and_sort(sequence):
-    """Shuffle and Sort"""
-    sequence = sorted(sequence, key=lambda x: x[0])
-    grouped = groupby(sequence, key=lambda x: x[0])
-    return [(word, list(pluck(1, group))) for word, group in grouped]
+    """Shuffle and Sort by key (word)"""
+    sorted_seq = sorted(sequence, key=itemgetter(0))
+    return [(key, list(group)) for key, group in groupby(sorted_seq, key=itemgetter(0))]
 
 
 def compute_sum_by_group(group):
-    """Compute sum for a word group"""
-    word, values = group
-    return (word, sum(values))
+    """Compute sum of counts in group"""
+    key, values = group
+    total = sum(v for _, v in values)
+    return key, total
 
 
 def reducer(sequence):
     """Reducer"""
-    return [compute_sum_by_group(g) for g in sequence]
+    return list(map(compute_sum_by_group, sequence))
 
 
 def create_directory(directory):
     """Create Output Directory"""
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+
+    if os.path.exists(directory):
+        for file in glob.glob(f"{directory}/*"):
+            os.remove(file)
+        os.rmdir(directory)
+
+    os.makedirs(directory)
 
 
 def save_output(output_directory, sequence):
-    """Save Output in part-00000"""
+    """Save Output"""
     output_file = os.path.join(output_directory, "part-00000")
     with open(output_file, "w", encoding="utf-8") as f:
-        for word, count in sorted(sequence, key=lambda x: x[0]):
+        for word, count in sorted(sequence):
             f.write(f"{word}\t{count}\n")
 
 
@@ -103,9 +100,9 @@ def create_marker(output_directory):
     """Create Marker"""
     marker_file = os.path.join(output_directory, "_SUCCESS")
     with open(marker_file, "w", encoding="utf-8") as f:
-        f.write("Job completed successfully\n")
-        
-        
+        f.write("Marcador de éxito")
+
+
 def run_job(input_directory, output_directory):
     """Job"""
     sequence = load_input(input_directory)
